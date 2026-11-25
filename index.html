@@ -1716,5 +1716,59 @@ function installPeople30(){
 
 installPeople30();
 })();
+// Dev31 mobile performance pass. Rendering budgets change visual work only;
+// the fixed simulation step, collisions and input path remain untouched.
+(()=>{
+ const G=Game.prototype;
+ const coarse=()=>matchMedia('(pointer:coarse)').matches||navigator.maxTouchPoints>0;
+ const cpuBegin=SoftwareRenderer.prototype.begin;
+ SoftwareRenderer.prototype.begin=function(eye,target,e){
+  if(this.fixedSize)return cpuBegin.call(this,eye,target,e);
+  const mobile=coarse(),cap=mobile?420:520,ratio=Math.max(.35,innerHeight/Math.max(1,innerWidth));
+  this.fixedSize=[Math.min(cap,Math.max(280,Math.round(innerWidth*Math.min(.72,e.quality||1)))),Math.max(160,Math.round(Math.min(cap,Math.max(280,innerWidth*.72))*ratio))];
+  try{return cpuBegin.call(this,eye,target,{...e,cpuHD19:false})}finally{this.fixedSize=null}
+ };
+ const setup=G.setupMenu;
+ G.setupMenu=function(){
+  setup.call(this);
+  const canvas=!!this.r.cpu,mobile=coarse(),first=!localStorage.getItem('urban-dev31-ready');
+  if(this.perf7){
+   this.perf7.mode='auto';
+   this.perf7.fps=mobile||canvas?30:this.perf7.fps;
+   this.perf7.level=canvas?0:mobile?1:2;
+   this.perf7.base=Math.min(this.perf7.base,canvas ? .82 : mobile ? 1 : 1.25);
+   this.perf7.changed=performance.now()-8000;
+  }
+  if(canvas&&first){
+   this.blur29=false;this.fog29=false;this.rainGlass29=false;
+   this.movingShadows28=false;this.shadow22Enabled=false;this.reflect23Enabled=false;
+   this.focus21=false;this.probe27Enabled=false;this.mirrorEnabled4=false;
+   this.cinema20='off';
+  }
+  try{localStorage.setItem('urban-dev31-ready','1')}catch{}
+ };
+ const environment=G.environment;
+ G.environment=function(){
+  environment.call(this);
+  const p=this.perf7,canvas=!!this.r.cpu,low=p?.mode==='auto'&&(p.level<=1||canvas);
+  if(low){
+   this.env.blur29=false;this.env.fog29=false;this.env.rainGlass29=false;
+   this.env.movingShadows28=false;this.env.shadow22=false;this.env.reflect23=false;
+   this.env.probe27=null;this.env.surface24=false;this.env.cinema20='off';
+   this.env.renderBudget7={...(this.env.renderBudget7||{}),scale:canvas ? .48 : .65,particles:canvas?55:110,rain:canvas?10:22,car:canvas?62:90,ped:canvas?34:55,mirror:1600,shadow:10};
+  }
+ };
+ const update=G.update;
+ G.update=function(dt){
+  update.call(this,dt);
+  const p=this.location(),perf=this.perf7;if(!p||!perf||perf.mode!=='auto')return;
+  const interval=perf.level<=0?.55:perf.level===1?.32:.18;
+  if(this.elapsed<(this.dev31CullAt||0))return;this.dev31CullAt=this.elapsed+interval;
+  const far=this.r.cpu?145:220;
+  for(const a of this.peds){a.dev31Near=Math.hypot(a.x-p.x,a.z-p.z)<(this.r.cpu?48:85)}
+  this.particles=this.particles.filter(a=>a.life>0&&Math.hypot(a.x-p.x,a.z-p.z)<far);
+  if(this.particles.length>(this.r.cpu?70:180))this.particles.splice(0,this.particles.length-(this.r.cpu?70:180));
+ };
+})();
 start();
 </script></body></html>
